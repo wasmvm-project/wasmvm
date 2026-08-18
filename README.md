@@ -97,7 +97,7 @@ Instead of emulating hardware, it directly intercepts POSIX system calls using b
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/fukayatti/wasmvm.git
+git clone https://github.com/wasmvm-project/wasmvm.git
 cd wasmvm
 
 # 2. Install dependencies
