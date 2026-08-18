@@ -76,7 +76,7 @@ export default function Home() {
   };
 
   return (
-    <main className="flex flex-col h-screen w-screen overflow-hidden bg-[#0a0f1d]">
+    <main className="flex flex-col h-[100dvh] w-screen overflow-hidden bg-[#0a0f1d]">
       {/* Top Header Navigation */}
       <Header
         isOPFS={isOPFS}
