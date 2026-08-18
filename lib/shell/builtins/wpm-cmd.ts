@@ -6,9 +6,22 @@ export const wpmCmd = async (ctx: CommandContext): Promise<number> => {
   const subCmd = ctx.args[0] || 'help';
   const manager = new WpmManager(ctx.vfs);
 
+  if (subCmd === 'update' || subCmd === 'refresh') {
+    ctx.stdout('\x1b[90m[wpm] Synchronizing with https://github.com/wasmvm-project/wpm-registry ...\x1b[0m\r\n');
+    try {
+      const reg = await manager.fetchRemoteRegistry();
+      const count = Object.keys(reg).length;
+      ctx.stdout(`\x1b[32m[wpm] Registry synchronized successfully (${count} packages available from GitHub)\x1b[0m\r\n`);
+      return 0;
+    } catch (e: any) {
+      ctx.stderr(`wpm update failed: ${e.message}\r\n`);
+      return 1;
+    }
+  }
+
   if (subCmd === 'list') {
     const packages = await manager.listPackages();
-    ctx.stdout('\r\n\x1b[1;36mAvailable WASM Packages (wpm registry):\x1b[0m\r\n');
+    ctx.stdout('\r\n\x1b[1;36mAvailable WASM Packages (wpm remote registry):\x1b[0m\r\n');
     ctx.stdout('----------------------------------------------------------------------\r\n');
     ctx.stdout('Name          Version       Size     Status       Description\r\n');
     ctx.stdout('----------------------------------------------------------------------\r\n');
@@ -23,7 +36,7 @@ export const wpmCmd = async (ctx: CommandContext): Promise<number> => {
       const statusPad = pkg.installed ? status + '  ' : status;
       ctx.stdout(`\x1b[1;33m${namePad}\x1b[0m ${verPad} ${sizePad} ${statusPad}  ${pkg.description}\r\n`);
     }
-    ctx.stdout('\r\nRun \x1b[32mwpm install <package_name>\x1b[0m to install.\r\n');
+    ctx.stdout('\r\nRun \x1b[32mwpm install <package_name>\x1b[0m to install, \x1b[32mwpm update\x1b[0m to sync registry.\r\n');
     return 0;
   }
 
@@ -62,12 +75,13 @@ export const wpmCmd = async (ctx: CommandContext): Promise<number> => {
 
   if (subCmd === 'info') {
     const targetPkg = ctx.args[1];
-    if (!targetPkg || !WPM_REGISTRY[targetPkg]) {
+    const registry = await manager.fetchRemoteRegistry();
+    if (!targetPkg || !registry[targetPkg]) {
       ctx.stderr(`wpm: package '${targetPkg || ''}' not found\r\n`);
       return 1;
     }
 
-    const pkg = WPM_REGISTRY[targetPkg];
+    const pkg = registry[targetPkg];
     const isInst = await manager.isInstalled(pkg.name);
     const infoText = `
 \x1b[1;36mPackage:\x1b[0m     ${pkg.name}
@@ -88,7 +102,8 @@ export const wpmCmd = async (ctx: CommandContext): Promise<number> => {
 
 Usage:
   wpm list               List all available and installed packages
-  wpm install <package>  Install a WASM package to /bin
+  wpm update             Sync package catalog from GitHub registry
+  wpm install <package>  Install a WASM package to /bin in OPFS
   wpm remove <package>   Uninstall a package
   wpm info <package>     Show package metadata and details
   wpm help               Show this help message

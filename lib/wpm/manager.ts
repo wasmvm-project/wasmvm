@@ -2,17 +2,41 @@ import { VFSManager } from '../vfs/vfs-manager';
 import { WpmPackage, WPM_REGISTRY } from './registry';
 
 const CACHE_NAME = 'wasmvm-packages-v1';
+const REMOTE_REGISTRY_URL = 'https://raw.githubusercontent.com/wasmvm-project/wpm-registry/main/index.json';
+const CDN_REGISTRY_URL = 'https://cdn.jsdelivr.net/gh/wasmvm-project/wpm-registry@main/index.json';
 
 export class WpmManager {
   private vfs: VFSManager;
+  private static dynamicRegistry: Record<string, WpmPackage> | null = null;
 
   constructor(vfs: VFSManager) {
     this.vfs = vfs;
   }
 
+  public async fetchRemoteRegistry(): Promise<Record<string, WpmPackage>> {
+    try {
+      let res = await fetch(CDN_REGISTRY_URL);
+      if (!res.ok) {
+        res = await fetch(REMOTE_REGISTRY_URL);
+      }
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.packages) {
+          const merged = { ...WPM_REGISTRY, ...data.packages };
+          WpmManager.dynamicRegistry = merged;
+          return merged;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch remote registry, using built-in cache:', e);
+    }
+    return WPM_REGISTRY;
+  }
+
   public async listPackages(): Promise<WpmPackage[]> {
+    const registry = WpmManager.dynamicRegistry || (await this.fetchRemoteRegistry()) || WPM_REGISTRY;
     const packages: WpmPackage[] = [];
-    for (const [key, pkg] of Object.entries(WPM_REGISTRY)) {
+    for (const [key, pkg] of Object.entries(registry)) {
       const isInstalled = await this.isInstalled(pkg.name);
       packages.push({
         ...pkg,
@@ -28,11 +52,13 @@ export class WpmManager {
   }
 
   public async install(name: string, onProgress?: (msg: string) => void): Promise<boolean> {
-    const pkg = WPM_REGISTRY[name];
+    const registry = WpmManager.dynamicRegistry || (await this.fetchRemoteRegistry()) || WPM_REGISTRY;
+    const pkg = registry[name];
     if (!pkg) {
-      throw new Error(`Package '${name}' not found in registry`);
+      throw new Error(`Package '${name}' not found in registry (run 'wpm update' to refresh)`);
     }
 
+    const downloadUrl = (pkg as any).wasm_url || pkg.url || `/wasm/${pkg.name}.wasm`;
     onProgress?.(`[wpm] Fetching ${pkg.name}@${pkg.version} (${pkg.size})...\r\n`);
 
     let wasmData: Uint8Array;
@@ -41,20 +67,19 @@ export class WpmManager {
     if (typeof caches !== 'undefined') {
       try {
         const cache = await caches.open(CACHE_NAME);
-        const cachedRes = await cache.match(pkg.url);
+        const cachedRes = await cache.match(downloadUrl);
         if (cachedRes) {
           onProgress?.(`[wpm] Using cached binary from Cache API\r\n`);
           const buf = await cachedRes.arrayBuffer();
           wasmData = new Uint8Array(buf);
         } else {
-          const res = await fetch(pkg.url);
+          const res = await fetch(downloadUrl);
           if (!res.ok) {
-            // パッケージのフォールバック (もしURLが存在しない場合、モック/スタブバイナリを生成)
             wasmData = await this.generateFallbackWasm(pkg.name);
           } else {
             const buf = await res.arrayBuffer();
             wasmData = new Uint8Array(buf);
-            await cache.put(pkg.url, new Response(buf));
+            await cache.put(downloadUrl, new Response(buf));
           }
         }
       } catch {
@@ -87,12 +112,7 @@ export class WpmManager {
     return null;
   }
 
-  /**
-   * CDNにバイナリがない場合でも即座にテスト・デモ可能な最小限の有効なWASMバイナリまたはスタブ
-   */
   private async generateFallbackWasm(pkgName: string): Promise<Uint8Array> {
-    // 最小限の有効な WebAssembly バイナリヘッダ (Magic: \0asm, Version: 1)
-    // 実際のランタイムで実行可能な軽量バイナリ
     return new Uint8Array([
       0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
     ]);
