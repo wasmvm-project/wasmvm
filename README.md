@@ -97,7 +97,7 @@ Instead of emulating hardware, it directly intercepts POSIX system calls using b
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/fukayatti0/wasmvm.git
+git clone https://github.com/fukayatti/wasmvm.git
 cd wasmvm
 
 # 2. Install dependencies
@@ -152,4 +152,4 @@ user@wasmvm:~/projects$ code script.py
 
 ## 📄 License
 
-MIT License © 2026 [fukayatti0](https://github.com/fukayatti0)
+MIT License © 2026 [fukayatti](https://github.com/fukayatti)
