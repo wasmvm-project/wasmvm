@@ -1,0 +1,50 @@
+{
+  "name": "wasmvm - Browser POSIX OS",
+  "short_name": "wasmvm",
+  "description": "Ultra-lightweight, 0ms-startup POSIX Terminal & WebAssembly OS in your browser",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1d",
+  "theme_color": "#0a0f1d",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": [
+    "developer",
+    "productivity",
+    "utilities"
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Open Terminal",
+      "url": "/",
+      "description": "Open POSIX Terminal"
+    }
+  ]
+}

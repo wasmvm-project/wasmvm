@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { Terminal, HardDrive, Cpu, Package, Folder, Maximize2, Minimize2, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Terminal, HardDrive, Cpu, Package, Folder, Maximize2, Minimize2, Sparkles, Download } from 'lucide-react';
 
 interface HeaderProps {
   isOPFS: boolean;
@@ -24,6 +24,44 @@ export const Header: React.FC<HeaderProps> = ({
   isFullscreen,
   onToggleFullscreen,
 }) => {
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    // Check if already in standalone PWA mode
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+      setIsInstalled(true);
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', () => {
+      setIsInstalled(true);
+      setInstallPrompt(null);
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (installPrompt) {
+      installPrompt.prompt();
+      const choiceResult = await installPrompt.userChoice;
+      if (choiceResult.outcome === 'accepted') {
+        setInstallPrompt(null);
+      }
+    } else {
+      // Fallback guide for iOS / Safari
+      alert('To install on iPhone/iPad:\nTap the Share button (⎋) in Safari and choose "Add to Home Screen" (+)!');
+    }
+  };
+
   return (
     <header className="flex flex-wrap items-center justify-between px-4 py-2.5 bg-slate-900/95 backdrop-blur border-b border-slate-800 text-slate-200 z-10 select-none">
       {/* Brand */}
@@ -68,6 +106,18 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Action Buttons */}
       <div className="flex items-center space-x-2">
+        {/* Install PWA Button */}
+        {!isInstalled && (
+          <button
+            onClick={handleInstallClick}
+            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600/30 to-cyan-600/30 hover:from-emerald-600/50 hover:to-cyan-600/50 border border-cyan-500/40 text-xs font-medium text-cyan-300 hover:text-white transition-all shadow-sm"
+            title="Install wasmvm as standalone native App"
+          >
+            <Download className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="hidden sm:inline">Install App</span>
+          </button>
+        )}
+
         <button
           onClick={onMountLocal}
           className="hidden lg:flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-amber-300 hover:text-amber-200 transition-all shadow-sm"
