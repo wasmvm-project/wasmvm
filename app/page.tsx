@@ -46,6 +46,25 @@ export default function Home() {
     return () => window.removeEventListener('wasmvm:open-editor', handleOpenEditorEvent);
   }, []);
 
+  // Lock window scrolling on mobile devices (Termux-like fixed layout)
+  useEffect(() => {
+    const lockScroll = () => {
+      if (window.scrollY !== 0 || window.scrollX !== 0) {
+        window.scrollTo(0, 0);
+      }
+    };
+
+    window.addEventListener('scroll', lockScroll, { passive: false });
+    window.visualViewport?.addEventListener('scroll', lockScroll);
+    window.visualViewport?.addEventListener('resize', lockScroll);
+
+    return () => {
+      window.removeEventListener('scroll', lockScroll);
+      window.visualViewport?.removeEventListener('scroll', lockScroll);
+      window.visualViewport?.removeEventListener('resize', lockScroll);
+    };
+  }, []);
+
   const handleToggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});

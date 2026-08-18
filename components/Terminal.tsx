@@ -133,7 +133,7 @@ export const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
           shell.handleKeyInput(data);
         });
 
-        // Resize observer
+        // Resize observer for window and mobile visualViewport (virtual keyboard)
         const handleResize = () => {
           try {
             fitAddon.fit();
@@ -141,6 +141,9 @@ export const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
         };
 
         window.addEventListener('resize', handleResize);
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', handleResize);
+        }
       };
 
       initTerminal();
