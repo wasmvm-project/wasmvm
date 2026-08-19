@@ -74,10 +74,12 @@ export class WasmRunner {
           stderr: stderrBuffer,
         };
       }
+      const errorMsg = `Runtime error: ${e.message}\r\n`;
+      if (options.stderr) { options.stderr(new TextEncoder().encode(errorMsg)); }
       return {
         exitCode: 1,
         stdout: stdoutBuffer,
-        stderr: stderrBuffer + (stderrBuffer ? '\r\n' : '') + `Runtime error: ${e.message}\r\n`,
+        stderr: stderrBuffer + (stderrBuffer ? '\r\n' : '') + errorMsg,
       };
     }
   }
