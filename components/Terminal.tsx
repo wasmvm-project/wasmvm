@@ -19,6 +19,7 @@ export const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
     const xtermInstance = useRef<any>(null);
     const fitAddonRef = useRef<any>(null);
     const shellRef = useRef<Shell | null>(null);
+    const resizeObserverRef = useRef<ResizeObserver | null>(null);
     const [isReady, setIsReady] = useState(false);
 
     useImperativeHandle(ref, () => ({
@@ -133,16 +134,15 @@ export const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
           shell.handleKeyInput(data);
         });
 
-        // Resize observer for window and mobile visualViewport (virtual keyboard)
-        const handleResize = () => {
+        // Resize observer to auto-fit when the container size changes (e.g., keyboard opening)
+        resizeObserverRef.current = new ResizeObserver(() => {
           try {
             fitAddon.fit();
           } catch {}
-        };
+        });
 
-        window.addEventListener('resize', handleResize);
-        if (window.visualViewport) {
-          window.visualViewport.addEventListener('resize', handleResize);
+        if (terminalRef.current) {
+          resizeObserverRef.current.observe(terminalRef.current);
         }
       };
 
@@ -150,6 +150,10 @@ export const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
 
       return () => {
         isMounted = false;
+        if (resizeObserverRef.current) {
+          resizeObserverRef.current.disconnect();
+          resizeObserverRef.current = null;
+        }
         if (xtermInstance.current) {
           xtermInstance.current.dispose();
           xtermInstance.current = null;

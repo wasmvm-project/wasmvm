@@ -32,6 +32,7 @@ export default function Home() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [activeFilePath, setActiveFilePath] = useState<string | null>('/home/user/welcome.txt');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const terminalRef = useRef<TerminalHandle | null>(null);
 
   // Listen for terminal "code <file>" event
@@ -54,14 +55,27 @@ export default function Home() {
       }
     };
 
+    const handleVisualViewportChange = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const offset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
+      setKeyboardOffset(offset);
+      lockScroll();
+    };
+
     window.addEventListener('scroll', lockScroll, { passive: false });
-    window.visualViewport?.addEventListener('scroll', lockScroll);
-    window.visualViewport?.addEventListener('resize', lockScroll);
+    window.visualViewport?.addEventListener('scroll', handleVisualViewportChange);
+    window.visualViewport?.addEventListener('resize', handleVisualViewportChange);
+
+    // Initial check
+    if (window.visualViewport) {
+      handleVisualViewportChange();
+    }
 
     return () => {
       window.removeEventListener('scroll', lockScroll);
-      window.visualViewport?.removeEventListener('scroll', lockScroll);
-      window.visualViewport?.removeEventListener('resize', lockScroll);
+      window.visualViewport?.removeEventListener('scroll', handleVisualViewportChange);
+      window.visualViewport?.removeEventListener('resize', handleVisualViewportChange);
     };
   }, []);
 
@@ -95,7 +109,10 @@ export default function Home() {
   };
 
   return (
-    <main className="flex flex-col h-[100dvh] w-screen overflow-hidden bg-[#0a0f1d]">
+    <main 
+      className="flex flex-col h-[100dvh] w-screen overflow-hidden bg-[#0a0f1d] transition-[padding] duration-100 ease-out"
+      style={{ paddingBottom: `${keyboardOffset}px` }}
+    >
       {/* Top Header Navigation */}
       <Header
         isOPFS={isOPFS}

@@ -8,31 +8,6 @@ interface MobileToolbarProps {
 }
 
 export const MobileToolbar: React.FC<MobileToolbarProps> = ({ onSendKey }) => {
-  const [bottomOffset, setBottomOffset] = useState<number>(0);
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.visualViewport) return;
-
-    const handleVisualViewportChange = () => {
-      const vv = window.visualViewport;
-      if (!vv) return;
-
-      // Calculate the difference between layout viewport and visual viewport
-      const offset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop));
-      setBottomOffset(offset);
-      setIsKeyboardOpen(offset > 50);
-    };
-
-    window.visualViewport.addEventListener('resize', handleVisualViewportChange);
-    window.visualViewport.addEventListener('scroll', handleVisualViewportChange);
-
-    return () => {
-      window.visualViewport?.removeEventListener('resize', handleVisualViewportChange);
-      window.visualViewport?.removeEventListener('scroll', handleVisualViewportChange);
-    };
-  }, []);
-
   const quickKeys = [
     { label: 'Tab', code: '\t', primary: true },
     { label: 'Ctrl+C', code: '\x03', danger: true },
@@ -49,9 +24,7 @@ export const MobileToolbar: React.FC<MobileToolbarProps> = ({ onSendKey }) => {
   return (
     <div
       style={{
-        transform: bottomOffset > 0 ? `translateY(-${bottomOffset}px)` : 'none',
-        transition: 'transform 0.1s ease-out',
-        paddingBottom: !isKeyboardOpen ? 'max(env(safe-area-inset-bottom, 0px), 6px)' : '6px',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 6px)',
       }}
       className="flex items-center justify-between px-2 pt-1.5 bg-slate-900/95 backdrop-blur border-t border-slate-800 select-none overflow-x-auto scrollbar-none z-30 gap-1.5 shrink-0"
     >
