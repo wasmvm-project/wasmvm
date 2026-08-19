@@ -96,6 +96,30 @@ export const TerminalComponent = forwardRef<TerminalHandle, TerminalProps>(
         term.open(terminalRef.current);
         fitAddon.fit();
 
+        term.attachCustomKeyEventHandler((event) => {
+          if (event.ctrlKey && event.shiftKey && event.type === 'keydown') {
+            if (event.code === 'KeyC') {
+              const selection = term.getSelection();
+              if (selection) {
+                navigator.clipboard.writeText(selection);
+              }
+              return false;
+            } else if (event.code === 'KeyV') {
+              navigator.clipboard.readText().then(text => {
+                if (shellRef.current) {
+                  for (let i = 0; i < text.length; i++) {
+                    shellRef.current.handleKeyInput(text[i]);
+                  }
+                }
+              }).catch(err => {
+                console.error('Failed to read clipboard contents: ', err);
+              });
+              return false;
+            }
+          }
+          return true;
+        });
+
         xtermInstance.current = term;
         fitAddonRef.current = fitAddon;
 
