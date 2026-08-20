@@ -10,4 +10,13 @@ export const exec = () => {
 export const execSync = () => {
   throw new Error("child_process.execSync is not supported in WASMVM");
 };
-export default { spawn, spawnSync, exec, execSync };
+export const execFile = () => {
+  throw new Error("child_process.execFile is not supported in WASMVM");
+};
+export const execFileSync = () => {
+  throw new Error("child_process.execFileSync is not supported in WASMVM");
+};
+export const fork = () => {
+  throw new Error("child_process.fork is not supported in WASMVM");
+};
+export default { spawn, spawnSync, exec, execSync, execFile, execFileSync, fork };
