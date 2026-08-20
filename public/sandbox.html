@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script>
+    // Listen for initialization message
+    window.addEventListener('message', async (e) => {
+      if (e.data?.type === 'init') {
+        const { channelId, scriptUrl, importMapStr, argv } = e.data;
+        
+        // Inject process.argv
+        window.process = { argv };
+        
+        // Override console
+        ['log', 'info', 'warn', 'error', 'debug'].forEach(method => {
+          const orig = console[method];
+          console[method] = (...args) => {
+            orig.apply(console, args);
+            const text = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+            const type = (method === 'error' || method === 'warn') ? 'stderr' : 'stdout';
+            window.parent.postMessage({ channelId, type, text }, '*');
+          };
+        });
+
+        // Unhandled errors
+        window.addEventListener('error', (err) => {
+          window.parent.postMessage({ channelId, type: 'stderr', text: err.message }, '*');
+          window.parent.postMessage({ channelId, type: 'done', exitCode: 1 }, '*');
+        });
+
+        window.addEventListener('unhandledrejection', (err) => {
+          window.parent.postMessage({ channelId, type: 'stderr', text: err.reason }, '*');
+          window.parent.postMessage({ channelId, type: 'done', exitCode: 1 }, '*');
+        });
+
+        // Setup importmap
+        if (importMapStr) {
+          const script = document.createElement('script');
+          script.type = 'importmap';
+          script.textContent = importMapStr;
+          document.head.appendChild(script);
+        }
+
+        // Run module
+        try {
+          // A tiny delay to let importmap apply
+          await new Promise(r => setTimeout(r, 0));
+          await import(scriptUrl);
+          
+          setTimeout(() => {
+            window.parent.postMessage({ channelId, type: 'done', exitCode: 0 }, '*');
+          }, 100);
+        } catch (err) {
+          console.error(err);
+          window.parent.postMessage({ channelId, type: 'done', exitCode: 1 }, '*');
+        }
+      }
+    });
+  </script>
+</head>
+<body>
+</body>
+</html>
