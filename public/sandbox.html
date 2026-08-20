@@ -15,11 +15,7 @@
       "child_process": "/node_polyfills/child_process.js"
     };
   </script>
-  <script type="module">
-    import { Buffer } from 'https://esm.sh/buffer';
-    window.Buffer = Buffer;
-    window.global = window;
-  </script>
+  
   <script>
     // Listen for initialization message
     window.addEventListener('message', async (e) => {
@@ -76,6 +72,15 @@
         script.type = 'importmap';
         script.textContent = JSON.stringify({ imports: finalImports });
         document.head.appendChild(script);
+
+        // Setup Buffer and global dynamically after importmap is loaded
+        try {
+          const { Buffer } = await import('buffer');
+          window.Buffer = Buffer;
+          window.global = window;
+        } catch(e) {
+          console.error("Failed to load Buffer polyfill:", e);
+        }
 
         // Run module
         try {
