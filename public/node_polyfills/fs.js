@@ -97,11 +97,22 @@ export const writeFile = (path, data, opts, cb) => {
   promises.writeFile(path, data, opts).then(() => callback(null)).catch(callback);
 };
 
-export const readFileSync = (path, opts) => {
+const resolveUrl = (path) => {
   let url = typeof path === 'string' ? path : (path.toString ? path.toString() : String(path));
-  if (!url.startsWith('http')) {
-     url = `/opfs${url.startsWith('/') ? '' : '/'}${url}`;
+  if (url.startsWith('https:/') && !url.startsWith('https://')) {
+     url = url.replace('https:/', 'https://');
   }
+  if (!url.startsWith('http')) {
+     if (url.match(/^\/([a-zA-Z0-9_-]+@\d+\.\d+\.\d+|v\d+\/|gh\/|npm\/|@[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+@\d+\.\d+\.\d+)/)) {
+       return { url: `https://esm.sh${url}`, isNetwork: true };
+     }
+     return { url: `/opfs${url.startsWith('/') ? '' : '/'}${url}`, isNetwork: false, originalPath: url };
+  }
+  return { url, isNetwork: true };
+};
+
+export const readFileSync = (path, opts) => {
+  const { url } = resolveUrl(path);
   const xhr = new XMLHttpRequest();
   xhr.open('GET', url, false);
   xhr.send(null);
@@ -112,8 +123,16 @@ export const readFileSync = (path, opts) => {
 };
 
 export const existsSync = (path) => {
+  const resolved = resolveUrl(path);
+  if (resolved.isNetwork) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('HEAD', resolved.url, false);
+    xhr.send(null);
+    return xhr.status === 200;
+  }
+  
   const xhr = new XMLHttpRequest();
-  xhr.open('GET', `/__sync_fs__/exists?path=${encodeURIComponent(path)}`, false);
+  xhr.open('GET', `/__sync_fs__/exists?path=${encodeURIComponent(resolved.originalPath)}`, false);
   xhr.send(null);
   if (xhr.status === 200) {
     try {
@@ -124,8 +143,19 @@ export const existsSync = (path) => {
 };
 
 export const statSync = (path) => {
+  const resolved = resolveUrl(path);
+  if (resolved.isNetwork) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('HEAD', resolved.url, false);
+    xhr.send(null);
+    if (xhr.status === 200) {
+      return { isFile: () => true, isDirectory: () => false, size: 0 };
+    }
+    throw new Error(`ENOENT: no such file or directory, stat '${path}'`);
+  }
+
   const xhr = new XMLHttpRequest();
-  xhr.open('GET', `/__sync_fs__/stat?path=${encodeURIComponent(path)}`, false);
+  xhr.open('GET', `/__sync_fs__/stat?path=${encodeURIComponent(resolved.originalPath)}`, false);
   xhr.send(null);
   if (xhr.status === 200) {
     try {
@@ -143,8 +173,13 @@ export const statSync = (path) => {
 };
 
 export const readdirSync = (path) => {
+  const resolved = resolveUrl(path);
+  if (resolved.isNetwork) {
+    return []; // Cannot readdir network
+  }
+
   const xhr = new XMLHttpRequest();
-  xhr.open('GET', `/__sync_fs__/readdir?path=${encodeURIComponent(path)}`, false);
+  xhr.open('GET', `/__sync_fs__/readdir?path=${encodeURIComponent(resolved.originalPath)}`, false);
   xhr.send(null);
   if (xhr.status === 200) {
     try {
