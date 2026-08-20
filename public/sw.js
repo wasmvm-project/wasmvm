@@ -78,6 +78,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 0.5. Node built-in module interception (from esm.sh bundles)
+  if (url.pathname.startsWith('/node/')) {
+    const moduleName = url.pathname.replace('/node/', '').replace('.mjs', '');
+    if (moduleName === 'fs' || moduleName === 'fs.promises') {
+      event.respondWith(
+        fetch(new Request(`/node_polyfills/fs.js`, request))
+      );
+      return;
+    }
+    if (moduleName === 'child_process') {
+      event.respondWith(
+        fetch(new Request(`/node_polyfills/child_process.js`, request))
+      );
+      return;
+    }
+    // Fallback other node builtins to esm.sh
+    event.respondWith(
+      fetch(new Request(`https://esm.sh/node/${moduleName}.mjs`))
+    );
+    return;
+  }
+
   // 1. WASM binaries, static files, and CDN assets: Cache-First strategy
   if (
     url.pathname.endsWith('.wasm') ||
