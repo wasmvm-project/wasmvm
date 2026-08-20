@@ -3,13 +3,41 @@
 <head>
   <meta charset="utf-8">
   <script>
+    const DEFAULT_IMPORTS = {
+      "fs": "/node_polyfills/fs.js",
+      "fs/promises": "/node_polyfills/fs.promises.js",
+      "path": "https://esm.sh/path-browserify",
+      "os": "https://esm.sh/os-browserify",
+      "util": "https://esm.sh/util",
+      "events": "https://esm.sh/events",
+      "stream": "https://esm.sh/stream-browserify",
+      "buffer": "https://esm.sh/buffer",
+      "child_process": "/node_polyfills/child_process.js"
+    };
+  </script>
+  <script type="module">
+    import { Buffer } from 'https://esm.sh/buffer';
+    window.Buffer = Buffer;
+    window.global = window;
+  </script>
+  <script>
     // Listen for initialization message
     window.addEventListener('message', async (e) => {
       if (e.data?.type === 'init') {
         const { channelId, scriptUrl, importMapStr, argv } = e.data;
         
-        // Inject process.argv
-        window.process = { argv };
+        // Inject process
+        window.process = {
+          argv: argv || [],
+          env: {},
+          cwd: () => '/home/user',
+          exit: (code) => {
+            window.parent.postMessage({ channelId, type: 'done', exitCode: code || 0 }, '*');
+          },
+          nextTick: (cb, ...args) => Promise.resolve().then(() => cb(...args)),
+          platform: 'linux',
+          version: 'v18.0.0',
+        };
         
         // Override console
         ['log', 'info', 'warn', 'error', 'debug'].forEach(method => {
@@ -33,17 +61,24 @@
           window.parent.postMessage({ channelId, type: 'done', exitCode: 1 }, '*');
         });
 
-        // Setup importmap
+        // Combine import maps
+        let finalImports = { ...DEFAULT_IMPORTS };
         if (importMapStr) {
-          const script = document.createElement('script');
-          script.type = 'importmap';
-          script.textContent = importMapStr;
-          document.head.appendChild(script);
+          try {
+            const parsed = JSON.parse(importMapStr);
+            if (parsed.imports) {
+              finalImports = { ...finalImports, ...parsed.imports };
+            }
+          } catch(err) {}
         }
+
+        const script = document.createElement('script');
+        script.type = 'importmap';
+        script.textContent = JSON.stringify({ imports: finalImports });
+        document.head.appendChild(script);
 
         // Run module
         try {
-          // A tiny delay to let importmap apply
           await new Promise(r => setTimeout(r, 0));
           await import(scriptUrl);
           
