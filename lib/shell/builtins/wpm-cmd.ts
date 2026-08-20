@@ -32,7 +32,7 @@ export const wpmCmd = async (ctx: CommandContext): Promise<number> => {
         : '\x1b[90mnot installed\x1b[0m';
       const namePad = pkg.name.padEnd(13, ' ');
       const verPad = pkg.version.padEnd(13, ' ');
-      const sizePad = pkg.size.padEnd(8, ' ');
+      const sizePad = (pkg.size || '-').padEnd(8, ' ');
       const statusPad = pkg.installed ? status + '  ' : status;
       ctx.stdout(`\x1b[1;33m${namePad}\x1b[0m ${verPad} ${sizePad} ${statusPad}  ${pkg.description}\r\n`);
     }
