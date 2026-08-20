@@ -97,10 +97,64 @@ export const writeFile = (path, data, opts, cb) => {
   promises.writeFile(path, data, opts).then(() => callback(null)).catch(callback);
 };
 
-export const readFileSync = (path, opts) => notSupported('readFileSync');
+export const readFileSync = (path, opts) => {
+  let url = typeof path === 'string' ? path : (path.toString ? path.toString() : String(path));
+  if (!url.startsWith('http')) {
+     url = `/opfs${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', url, false);
+  xhr.send(null);
+  if (xhr.status === 200) {
+    return xhr.responseText;
+  }
+  throw new Error(`ENOENT: no such file or directory, open '${path}'`);
+};
+
+export const existsSync = (path) => {
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', `/__sync_fs__/exists?path=${encodeURIComponent(path)}`, false);
+  xhr.send(null);
+  if (xhr.status === 200) {
+    try {
+      return JSON.parse(xhr.responseText).exists;
+    } catch(e) {}
+  }
+  return false;
+};
+
+export const statSync = (path) => {
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', `/__sync_fs__/stat?path=${encodeURIComponent(path)}`, false);
+  xhr.send(null);
+  if (xhr.status === 200) {
+    try {
+      const data = JSON.parse(xhr.responseText);
+      if (data.exists) {
+        return {
+          isFile: () => data.isFile,
+          isDirectory: () => data.isDirectory,
+          size: 0,
+        };
+      }
+    } catch(e) {}
+  }
+  throw new Error(`ENOENT: no such file or directory, stat '${path}'`);
+};
+
+export const readdirSync = (path) => {
+  const xhr = new XMLHttpRequest();
+  xhr.open('GET', `/__sync_fs__/readdir?path=${encodeURIComponent(path)}`, false);
+  xhr.send(null);
+  if (xhr.status === 200) {
+    try {
+      return JSON.parse(xhr.responseText);
+    } catch(e) {}
+  }
+  throw new Error(`ENOENT: no such file or directory, scandir '${path}'`);
+};
+
 export const writeFileSync = (path, data, opts) => notSupported('writeFileSync');
-export const existsSync = (path) => notSupported('existsSync');
-export const statSync = (path) => notSupported('statSync');
 
 export default {
   promises,

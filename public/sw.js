@@ -45,6 +45,51 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 0.1 Sync FS interception for fs.js polyfill
+  if (url.pathname.startsWith('/__sync_fs__/')) {
+    const action = url.pathname.replace('/__sync_fs__/', '');
+    const targetPath = url.searchParams.get('path') || '';
+    
+    event.respondWith((async () => {
+      try {
+        const root = await navigator.storage.getDirectory();
+        const parts = targetPath.replace(/^\/+/, '').split('/').filter(Boolean);
+        let curr = root;
+        for (let i = 0; i < parts.length - 1; i++) {
+          curr = await curr.getDirectoryHandle(parts[i]);
+        }
+        
+        if (action === 'stat' || action === 'exists') {
+          try {
+            await curr.getFileHandle(parts[parts.length - 1]);
+            return new Response(JSON.stringify({ exists: true, isFile: true, isDirectory: false }), { status: 200 });
+          } catch(e) {
+            try {
+              await curr.getDirectoryHandle(parts[parts.length - 1]);
+              return new Response(JSON.stringify({ exists: true, isFile: false, isDirectory: true }), { status: 200 });
+            } catch(e2) {
+              return new Response(JSON.stringify({ exists: false }), { status: 404 });
+            }
+          }
+        }
+        
+        if (action === 'readdir') {
+           const dirHandle = await curr.getDirectoryHandle(parts[parts.length - 1]);
+           const entries = [];
+           for await (const [name] of dirHandle.entries()) {
+             entries.push(name);
+           }
+           return new Response(JSON.stringify(entries), { status: 200 });
+        }
+        
+      } catch(e) {
+        return new Response(JSON.stringify({ exists: false }), { status: 404 });
+      }
+      return new Response('Bad request', { status: 400 });
+    })());
+    return;
+  }
+
   // 0. OPFS Interception
   if (url.pathname.startsWith('/opfs/')) {
     event.respondWith((async () => {
