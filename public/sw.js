@@ -93,6 +93,12 @@ self.addEventListener('fetch', (event) => {
       );
       return;
     }
+    if (moduleName === 'url') {
+      event.respondWith(
+        fetch(new Request(`/node_polyfills/url.js`, request))
+      );
+      return;
+    }
     // Fallback other node builtins to esm.sh
     event.respondWith(
       fetch(new Request(`https://esm.sh/node/${moduleName}.mjs`))
