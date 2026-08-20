@@ -87,9 +87,9 @@
           await new Promise(r => setTimeout(r, 0));
           await import(scriptUrl);
           
-          setTimeout(() => {
-            window.parent.postMessage({ channelId, type: 'done', exitCode: 0 }, '*');
-          }, 100);
+          // DO NOT auto-exit here. CLI tools that use dynamic imports will resolve this 
+          // top-level import immediately before finishing execution.
+          // We rely on window.process.exit() to send the 'done' message.
         } catch (err) {
           console.error(err);
           window.parent.postMessage({ channelId, type: 'done', exitCode: 1 }, '*');
