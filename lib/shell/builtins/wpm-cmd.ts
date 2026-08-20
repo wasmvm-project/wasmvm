@@ -40,18 +40,22 @@ export const wpmCmd = async (ctx: CommandContext): Promise<number> => {
     return 0;
   }
 
-  if (subCmd === 'install' || subCmd === 'i' || subCmd === 'add') {
+  if (subCmd === 'install' || subCmd === 'i' || subCmd === 'add' || subCmd === 'upgrade') {
     const targetPkg = ctx.args[1];
     if (!targetPkg) {
-      ctx.stderr('wpm: please specify a package name (e.g. wpm install cowsay)\r\n');
+      ctx.stderr(`wpm: please specify a package name (e.g. wpm ${subCmd} cowsay)\r\n`);
       return 1;
+    }
+    const forceUpgrade = subCmd === 'upgrade';
+    if (forceUpgrade) {
+      ctx.stdout(`\x1b[33m[wpm] Forcing upgrade (bypassing cache)...\x1b[0m\r\n`);
     }
 
     try {
-      await manager.install(targetPkg, (msg) => ctx.stdout(msg));
+      await manager.install(targetPkg, (msg) => ctx.stdout(msg), forceUpgrade);
       return 0;
     } catch (e: any) {
-      ctx.stderr(`wpm install failed: ${e.message}\r\n`);
+      ctx.stderr(`wpm ${subCmd} failed: ${e.message}\r\n`);
       return 1;
     }
   }
@@ -101,12 +105,13 @@ export const wpmCmd = async (ctx: CommandContext): Promise<number> => {
 \x1b[1;36mwpm (WASM Package Manager) - CLI Tool\x1b[0m
 
 Usage:
-  wpm list               List all available and installed packages
-  wpm update             Sync package catalog from GitHub registry
-  wpm install <package>  Install a WASM package to /bin in OPFS
-  wpm remove <package>   Uninstall a package
-  wpm info <package>     Show package metadata and details
-  wpm help               Show this help message
+  wpm list                 List all available and installed packages
+  wpm update               Sync package catalog from GitHub registry
+  wpm install <package>    Install a WASM package to /bin in OPFS
+  wpm upgrade <package>    Force-upgrade a package (bypass cache)
+  wpm remove <package>     Uninstall a package
+  wpm info <package>       Show package metadata and details
+  wpm help                 Show this help message
 `;
   ctx.stdout(helpText.replace(/\n/g, '\r\n'));
   return 0;

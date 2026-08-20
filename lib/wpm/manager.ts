@@ -55,7 +55,7 @@ export class WpmManager {
     return await this.vfs.exists(binPath);
   }
 
-  public async install(name: string, onProgress?: (msg: string) => void): Promise<boolean> {
+  public async install(name: string, onProgress?: (msg: string) => void, forceUpgrade?: boolean): Promise<boolean> {
     const registry = WpmManager.dynamicRegistry || (await this.fetchRemoteRegistry()) || WPM_REGISTRY;
     const pkg = registry[name];
     if (!pkg) {
@@ -71,13 +71,14 @@ export class WpmManager {
     if (typeof caches !== 'undefined') {
       try {
         const cache = await caches.open(CACHE_NAME);
-        const cachedRes = await cache.match(downloadUrl);
+        const cachedRes = forceUpgrade ? null : await cache.match(downloadUrl);
         if (cachedRes) {
           onProgress?.(`[wpm] Using cached binary from Cache API\r\n`);
           const buf = await cachedRes.arrayBuffer();
           wasmData = new Uint8Array(buf);
         } else {
-          const res = await fetch(downloadUrl);
+          const targetUrl = forceUpgrade ? `${downloadUrl}?bust=${Date.now()}` : downloadUrl;
+          const res = await fetch(targetUrl, { cache: forceUpgrade ? 'no-cache' : 'default' });
           if (!res.ok) {
             wasmData = await this.generateFallbackWasm(pkg.name);
           } else {
