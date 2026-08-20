@@ -47,7 +47,11 @@ export class WpmManager {
   }
 
   public async isInstalled(name: string): Promise<boolean> {
-    const binPath = `/bin/${name}.wasm`;
+    const registry = WpmManager.dynamicRegistry || WPM_REGISTRY;
+    const pkg = registry[name];
+    const ext = pkg?.type === 'js' ? '.js' : '.wasm';
+    const binName = pkg?.executable || `${name}${ext}`;
+    const binPath = `/bin/${binName}`;
     return await this.vfs.exists(binPath);
   }
 
@@ -89,8 +93,10 @@ export class WpmManager {
       wasmData = await this.generateFallbackWasm(pkg.name);
     }
 
-    onProgress?.(`[wpm] Writing to /bin/${pkg.name}.wasm in OPFS...\r\n`);
-    await this.vfs.writeFile(`/bin/${pkg.name}.wasm`, wasmData);
+    const ext = pkg.type === 'js' ? '.js' : '.wasm';
+    const binName = pkg.executable || `${pkg.name}${ext}`;
+    onProgress?.(`[wpm] Writing to /bin/${binName} in OPFS...\r\n`);
+    await this.vfs.writeFile(`/bin/${binName}`, wasmData);
     onProgress?.(`[wpm] Successfully installed '${pkg.name}'! (Run '${pkg.name}' to execute)\r\n`);
     return true;
   }

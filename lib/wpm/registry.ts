@@ -2,9 +2,11 @@ export interface WpmPackage {
   name: string;
   version: string;
   description: string;
-  category: 'utilities' | 'programming' | 'system' | 'games' | 'database';
-  size: string;
-  url: string;
+  category?: string;
+  type?: 'wasm' | 'js';
+  executable?: string;
+  size?: string;
+  url?: string;
   author?: string;
   installed?: boolean;
 }
