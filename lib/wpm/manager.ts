@@ -15,9 +15,9 @@ export class WpmManager {
 
   public async fetchRemoteRegistry(): Promise<Record<string, WpmPackage>> {
     try {
-      let res = await fetch(CDN_REGISTRY_URL);
+      let res = await fetch(`${CDN_REGISTRY_URL}?t=${Date.now()}`, { cache: 'no-store' });
       if (!res.ok) {
-        res = await fetch(REMOTE_REGISTRY_URL);
+        res = await fetch(`${REMOTE_REGISTRY_URL}?t=${Date.now()}`, { cache: 'no-store' });
       }
       if (res.ok) {
         const data = await res.json();
