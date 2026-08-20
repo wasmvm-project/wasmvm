@@ -45,6 +45,39 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 0. OPFS Interception
+  if (url.pathname.startsWith('/opfs/')) {
+    event.respondWith((async () => {
+      try {
+        const root = await navigator.storage.getDirectory();
+        const parts = decodeURIComponent(url.pathname).replace(/^\/opfs\//, '').split('/').filter(Boolean);
+        let curr = root;
+        for (let i = 0; i < parts.length - 1; i++) {
+          curr = await curr.getDirectoryHandle(parts[i]);
+        }
+        const fileHandle = await curr.getFileHandle(parts[parts.length - 1]);
+        const file = await fileHandle.getFile();
+        
+        let contentType = 'application/octet-stream';
+        if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs')) contentType = 'application/javascript';
+        else if (url.pathname.endsWith('.json')) contentType = 'application/json';
+        else if (url.pathname.endsWith('.css')) contentType = 'text/css';
+        else if (url.pathname.endsWith('.html')) contentType = 'text/html';
+        else if (url.pathname.endsWith('.py')) contentType = 'text/plain';
+        
+        return new Response(file, {
+          headers: {
+            'Content-Type': contentType,
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      } catch (e) {
+        return new Response('Not found in OPFS: ' + e.message, { status: 404 });
+      }
+    })());
+    return;
+  }
+
   // 1. WASM binaries, static files, and CDN assets: Cache-First strategy
   if (
     url.pathname.endsWith('.wasm') ||
