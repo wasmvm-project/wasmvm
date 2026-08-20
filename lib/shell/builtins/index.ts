@@ -13,8 +13,6 @@ import { mountLocalCmd } from './mount-cmd';
 import { pythonCmd } from './python-cmd';
 import { sqliteCmd } from './sqlite-cmd';
 import { jsCmd } from './js-cmd';
-import { pnpmCmd } from './pnpm-cmd';
-import { pipCmd } from './pip-cmd';
 
 export const BUILTIN_COMMANDS: Record<string, BuiltinCommandFn> = {
   // File System
@@ -80,10 +78,6 @@ export const BUILTIN_COMMANDS: Record<string, BuiltinCommandFn> = {
   curl: curlCmd,
   fetch: curlCmd,
   wpm: wpmCmd,
-  pnpm: pnpmCmd,
-  npm: pnpmCmd,
-  pip: pipCmd,
-  pip3: pipCmd,
   'mount-local': mountLocalCmd,
 };
 

@@ -5,6 +5,7 @@ import { ShellParser } from './parser';
 import { BUILTIN_COMMANDS, executeBuiltin, isBuiltinCommand, getBuiltinNames } from './builtins';
 import { CommandContext, ParsedPipeline, ParsedSingleCommand } from './types';
 import { WasmRunner } from '../wasi/runner';
+import { jsCmd } from './builtins/js-cmd';
 import { AliasManager } from './alias';
 import { GlobMatcher } from './glob';
 
@@ -354,6 +355,15 @@ export class Shell {
   }
 
   private async executeWasmCommand(name: string, ctx: CommandContext): Promise<number> {
+    const jsPath = `/bin/${name}.js`;
+    if (await this.vfs.exists(jsPath)) {
+      // Execute via jsCmd (Native JS Engine)
+      return await jsCmd({
+        ...ctx,
+        args: [jsPath, ...ctx.args],
+      });
+    }
+
     const wasmPath = `/bin/${name}.wasm`;
     const exists = await this.vfs.exists(wasmPath);
 

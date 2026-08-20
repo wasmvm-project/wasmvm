@@ -69,6 +69,9 @@ export const jsCmd = async (ctx: CommandContext): Promise<number> => {
       </head>
       <body>
         <script>
+          // Inject process.argv
+          window.process = { argv: ['node', '${absPath}', ...${JSON.stringify(ctx.args.slice(1))}] };
+          
           // Override console
           ['log', 'info', 'warn', 'error', 'debug'].forEach(method => {
             const orig = console[method];
