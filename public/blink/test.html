@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Blink x86_64 Emulator Test</title>
+</head>
+<body>
+  <pre id="output"></pre>
+  <script>
+    var Module = {
+      print: function(text) {
+        document.getElementById('output').innerHTML += text + '\n';
+        console.log(text);
+      },
+      printErr: function(text) {
+        document.getElementById('output').innerHTML += text + '\n';
+        console.error(text);
+      },
+      arguments: ['hello_x86'],
+      preRun: [
+        function() {
+          // Preload the x86 binary into the Emscripten virtual file system
+          FS.createPreloadedFile('/', 'hello_x86', 'hello_x86', true, false);
+        }
+      ]
+    };
+  </script>
+  <script src="blink.js"></script>
+</body>
+</html>
